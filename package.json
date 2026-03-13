@@ -1,0 +1,13 @@
+{
+  "name": "small-bule-note",
+  "version": "1.0.0",
+  "description": "WeChat-like IM App",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "build": "cd backend && npm install && npm run build",
+    "start": "cd backend && npm run start:prod"
+  }
+}
