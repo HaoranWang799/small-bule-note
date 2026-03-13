@@ -1,62 +1,78 @@
-import { useNavigate } from "react-router";
-import { useAppStore } from "../store";
-import { Avatar } from "./Avatar";
-import { UnreadBadge } from "./UnreadBadge";
-import { Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useAppStore } from '../store';
+import { Avatar } from './Avatar';
+import { UnreadBadge } from './UnreadBadge';
 
 export function ChatListScreen() {
   const navigate = useNavigate();
-  const conversations = useAppStore((s) => s.conversations);
-  const [search, setSearch] = useState("");
+  const contacts = useAppStore((s) => s.contacts);
+  const getMessages = useAppStore((s) => s.getMessages);
+  const unreadCounts = useAppStore((s) => s.unreadCounts);
+  const initSocket = useAppStore((s) => s.initSocket);
 
-  const filtered = conversations.filter(
-    (c) =>
-      c.target.username.toLowerCase().includes(search.toLowerCase()) ||
-      c.lastMessage.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    initSocket();
+  }, [initSocket]);
+
+  const chats = contacts.map(contact => {
+    const msgs = getMessages(contact.id);
+    const lastMsg = msgs[msgs.length - 1];
+    return {
+      contact,
+      lastMessage: lastMsg,
+      unread: unreadCounts[contact.id] || 0
+    };
+  }).sort((a, b) => {
+    const timeA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+    const timeB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F5F5]">
-      {/* Header */}
-      <div className="bg-[#F5F5F5] px-4 pt-3 pb-2">
-        <h1 className="text-[18px] text-[#111] mb-2">消息</h1>
-        <div className="flex items-center bg-white rounded-lg px-3 h-9">
-          <Search className="w-4 h-4 text-[#999] mr-2" />
-          <input
-            placeholder="搜索"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-[14px] text-[#111] placeholder-[#999] outline-none"
-          />
-        </div>
+    <div className="flex flex-col h-full bg-[#F8F8F8]">
+      <div className="bg-[#FFFFFF] px-4 pt-4 pb-3 shadow-sm z-10 sticky top-0">
+        <h1 className="text-[18px] font-semibold text-[#1F1F1F] leading-none tracking-wide text-left">WeChat</h1>
       </div>
 
-      {/* Chat list */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.map((conv) => (
-          <button
-            key={conv.id}
-            onClick={() => navigate(`/chat/${conv.target.id}`)}
-            className="flex items-center w-full px-4 py-3 bg-white border-b border-[#F5F5F5] hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors text-left"
-          >
-            <Avatar name={conv.target.username} online={conv.target.online} />
-            <div className="flex-1 ml-3 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-[16px] text-[#111] truncate">{conv.target.username}</span>
-                <span className="text-[12px] text-[#999] shrink-0 ml-2">{conv.timestamp}</span>
-              </div>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className="text-[13px] text-[#999] truncate">{conv.lastMessage}</span>
-                <UnreadBadge count={conv.unread} />
-              </div>
+        {chats.length > 0 ? (
+          <div className="py-2">
+            {chats.map(({ contact, lastMessage, unread }) => (
+              <button
+                key={contact.id}
+                onClick={() => navigate(`/chat/${contact.id}`)}
+                className="w-full flex items-center px-4 py-3.5 bg-[#FFFFFF] hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors text-left border-b border-[#F0F0F0] last:border-b-0"
+              >
+                <div className="relative">
+                  <Avatar name={contact.username} />
+                  {unread > 0 && (
+                    <div className="absolute -top-1 -right-1 z-10">
+                      <UnreadBadge count={unread} />
+                    </div>
+                  )}
+                </div>
+                <div className="ml-4 flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-[16px] font-medium text-[#1F1F1F] truncate">{contact.username}</span>
+                    <span className="text-[12px] text-[#8A8A8A] flex-shrink-0 ml-2">
+                      {lastMessage ? new Date(lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </span>
+                  </div>
+                  <p className="text-[14px] text-[#8A8A8A] truncate leading-tight">
+                    {lastMessage ? lastMessage.content : 'No messages yet'}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+            <div className="w-16 h-16 bg-[#E5E5E5] rounded-full flex items-center justify-center mb-4">
+              <span className="text-[24px]">💬</span>
             </div>
-          </button>
-        ))}
-
-        {filtered.length === 0 && (
-          <div className="flex items-center justify-center py-20 text-[14px] text-[#999]">
-            暂无消息
+            <p className="text-[15px] font-medium text-[#1F1F1F] mb-1">No chats yet</p>
+            <p className="text-[14px] text-[#8A8A8A]">Tap on Contacts to start messaging</p>
           </div>
         )}
       </div>

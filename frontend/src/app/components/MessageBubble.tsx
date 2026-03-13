@@ -1,37 +1,39 @@
-import { Check, CheckCheck } from "lucide-react";
-import type { Message } from "../store";
+import { memo } from 'react';
 
 interface MessageBubbleProps {
-  message: Message;
+  text: string;
   isMine: boolean;
+  timestamp: string;
 }
 
-export function MessageBubble({ message, isMine }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({
+  text,
+  isMine,
+  timestamp,
+}: MessageBubbleProps) {
+  const timeString = new Date(timestamp).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
-    <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3`}>
+    <div className={`flex w-full mb-3 ${isMine ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[75%] px-3 py-2 rounded-lg ${
+        className={`max-w-[75%] px-4 py-2.5 rounded-2xl relative shadow-sm break-words ${
           isMine
-            ? "bg-[#95EC69] text-[#111] rounded-tr-sm"
-            : "bg-white text-[#111] rounded-tl-sm"
+            ? 'bg-[#07C160] text-white rounded-tr-sm'
+            : 'bg-[#FFFFFF] text-[#1F1F1F] rounded-tl-sm border border-[#F0F0F0]'
         }`}
       >
-        <p className="text-[15px] break-words">{message.content}</p>
-        <div className={`flex items-center gap-1 mt-0.5 ${isMine ? "justify-end" : "justify-start"}`}>
-          <span className="text-[11px] text-[#999]">{message.timestamp}</span>
-          {isMine && (
-            <span className="text-[11px]">
-              {message.status === "read" ? (
-                <CheckCheck className="w-3.5 h-3.5 text-[#07C160]" />
-              ) : message.status === "delivered" ? (
-                <CheckCheck className="w-3.5 h-3.5 text-[#999]" />
-              ) : (
-                <Check className="w-3.5 h-3.5 text-[#999]" />
-              )}
-            </span>
-          )}
-        </div>
+        <p className="text-[16px] leading-relaxed whitespace-pre-wrap">{text}</p>
+        <span
+          className={`text-[11px] block text-right mt-1 ${
+            isMine ? 'text-white/80' : 'text-[#8A8A8A]'
+          }`}
+        >
+          {timeString}
+        </span>
       </div>
     </div>
   );
-}
+});

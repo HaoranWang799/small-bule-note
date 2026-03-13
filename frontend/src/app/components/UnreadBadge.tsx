@@ -1,8 +1,16 @@
-export function UnreadBadge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#ee0a24] text-white text-[11px] flex items-center justify-center">
-      {count > 99 ? "99+" : count}
-    </span>
-  );
+import { memo } from 'react';
+
+interface UnreadBadgeProps {
+  count: number;
 }
+
+export const UnreadBadge = memo(function UnreadBadge({ count }: UnreadBadgeProps) {
+  if (count === 0) return null;
+  const displayCount = count > 99 ? '99+' : count.toString();
+
+  return (
+    <div className="bg-[#FF3B30] text-white text-[11px] font-bold px-[5px] min-w-[20px] h-[20px] rounded-full flex items-center justify-center border-2 border-[#FFFFFF] shadow-sm">
+      {displayCount}
+    </div>
+  );
+});

@@ -1,79 +1,50 @@
-import { useNavigate } from "react-router";
-import { useAppStore } from "../store";
-import { Avatar } from "./Avatar";
-import { ChevronRight, LogOut, Edit, Shield, Bell, CircleHelp } from "lucide-react";
+import { useAppStore } from '../store';
+import { Avatar } from './Avatar';
+import { LogOut, ChevronRight } from 'lucide-react';
 
 export function ProfileScreen() {
-  const navigate = useNavigate();
   const currentUser = useAppStore((s) => s.currentUser);
   const logout = useAppStore((s) => s.logout);
-  const socketStatus = useAppStore((s) => s.socketStatus);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
 
   if (!currentUser) return null;
 
-  const menuItems = [
-    { icon: Edit, label: "编辑资料", action: () => navigate("/edit-profile") },
-    { icon: Bell, label: "通知设置", action: () => {} },
-    { icon: Shield, label: "隐私与安全", action: () => {} },
-    { icon: CircleHelp, label: "帮助与反馈", action: () => {} },
-  ];
-
   return (
-    <div className="flex flex-col h-full bg-[#F5F5F5]">
-      {/* Profile card */}
-      <div className="bg-white px-4 pt-8 pb-6 mb-2">
-        <div className="flex items-center">
-          <Avatar name={currentUser.username} size="lg" />
-          <div className="ml-4 flex-1">
-            <h2 className="text-[20px] text-[#111]">{currentUser.username}</h2>
-            <p className="text-[14px] text-[#999] mt-0.5">{currentUser.email}</p>
-            <p className="text-[12px] text-[#999] mt-1">资料状态：{currentUser.status}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className={`w-2 h-2 rounded-full ${socketStatus === "connected" ? "bg-[#2ECC71]" : "bg-[#BDC3C7]"}`} />
-              <span className="text-[12px] text-[#999]">
-                {socketStatus === "connected"
-                  ? "WebSocket 已连接"
-                  : socketStatus === "connecting"
-                    ? "WebSocket 连接中"
-                    : "未连接"}
-              </span>
+    <div className="flex flex-col h-full bg-[#E5E5E5] relative">
+      <div className="flex-1 overflow-y-auto">
+        <div className="bg-[#FFFFFF] pt-12 pb-8 px-6 mb-2 rounded-b-2xl shadow-sm">
+          <div className="flex items-center">
+            <div className="w-16 h-16">
+              <Avatar name={currentUser.username} size="lg" />
+            </div>
+            <div className="ml-5 flex-1 min-w-0">
+              <h1 className="text-[22px] font-bold text-[#1F1F1F] truncate">{currentUser.username}</h1>
+              <p className="text-[14px] text-[#8A8A8A] mt-1 truncate">ID: {currentUser.id}</p>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Menu items */}
-      <div className="bg-white mb-2">
-        {menuItems.map((item, idx) => {
-          const Icon = item.icon;
-          return (
+        <div className="px-4 space-y-2">
+          <div className="bg-[#FFFFFF] rounded-2xl shadow-sm overflow-hidden">
+             <button className="w-full flex items-center justify-between px-4 py-4 hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors border-b border-[#F0F0F0] last:border-b-0">
+                <span className="text-[16px] text-[#1F1F1F]">Settings</span>
+                <ChevronRight className="w-5 h-5 text-[#8A8A8A]" />
+             </button>
+             <button className="w-full flex items-center justify-between px-4 py-4 hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors border-b border-[#F0F0F0] last:border-b-0">
+                <span className="text-[16px] text-[#1F1F1F]">About</span>
+                <ChevronRight className="w-5 h-5 text-[#8A8A8A]" />
+             </button>
+          </div>
+
+          <div className="bg-[#FFFFFF] rounded-2xl shadow-sm overflow-hidden mt-6">
             <button
-              key={idx}
-              onClick={item.action}
-              className="flex items-center w-full px-4 py-3.5 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors text-left border-b border-[#F5F5F5] last:border-0"
+              onClick={logout}
+              className="w-full flex items-center justify-center px-4 py-4 text-[#FF3B30] hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors"
             >
-              <Icon className="w-5 h-5 text-[#666] mr-3" />
-              <span className="flex-1 text-[15px] text-[#111]">{item.label}</span>
-              <ChevronRight className="w-4 h-4 text-[#ccc]" />
+              <LogOut className="w-5 h-5 mr-2" />
+              <span className="text-[16px] font-medium">Log Out</span>
             </button>
-          );
-        })}
-      </div>
-
-      {/* Logout */}
-      <div className="bg-white mt-auto mb-0">
-        <button
-          onClick={handleLogout}
-          className="flex items-center justify-center w-full py-3.5 text-[#ee0a24] hover:bg-[#fff5f5] active:bg-[#ffecec] transition-colors"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          退出登录
-        </button>
+          </div>
+        </div>
       </div>
     </div>
   );

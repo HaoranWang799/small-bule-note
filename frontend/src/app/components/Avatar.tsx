@@ -1,55 +1,36 @@
+import { memo } from 'react';
+
 interface AvatarProps {
   name: string;
-  size?: "sm" | "md" | "lg";
-  online?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const sizeMap = {
-  sm: "w-8 h-8",
-  md: "w-11 h-11",
-  lg: "w-20 h-20",
-};
+export const Avatar = memo(function Avatar({ name, size = 'md' }: AvatarProps) {
+  const initial = name ? name.charAt(0).toUpperCase() : '?';
 
-const textSizeMap = {
-  sm: "text-xs",
-  md: "text-sm",
-  lg: "text-2xl",
-};
+  // Deterministic color based on name length/chars
+  const colorIndex = name ? name.charCodeAt(0) % 5 : 0;
+  const colors = [
+    'bg-[#53A1F4]',
+    'bg-[#E57373]',
+    'bg-[#81C784]',
+    'bg-[#FFB74D]',
+    'bg-[#BA68C8]',
+  ];
 
-const colors = [
-  "bg-[#07C160]",
-  "bg-[#1989fa]",
-  "bg-[#ee0a24]",
-  "bg-[#ff976a]",
-  "bg-[#7232dd]",
-  "bg-[#f2826a]",
-  "bg-[#2db7f5]",
-];
+  const sizeClasses = {
+    sm: 'w-10 h-10 text-[16px]',
+    md: 'w-12 h-12 text-[20px]',
+    lg: 'w-[4.5rem] h-[4.5rem] text-[28px]', // ~72px
+  };
 
-function getColor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
-
-export function Avatar({ name, size = "md", online }: AvatarProps) {
-  const initial = name.charAt(0).toUpperCase();
   return (
-    <div className="relative inline-flex shrink-0">
-      <div
-        className={`${sizeMap[size]} ${getColor(name)} rounded-lg flex items-center justify-center text-white ${textSizeMap[size]}`}
-      >
-        {initial}
-      </div>
-      {online !== undefined && (
-        <span
-          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-            online ? "bg-[#2ECC71]" : "bg-[#BDC3C7]"
-          }`}
-        />
-      )}
+    <div
+      className={`rounded-[14px] flex items-center justify-center text-white font-medium shadow-sm flex-shrink-0 ${
+        colors[colorIndex]
+      } ${sizeClasses[size]}`}
+    >
+      {initial}
     </div>
   );
-}
+});
