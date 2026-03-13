@@ -4,16 +4,16 @@ import { useAppStore } from '../store';
 
 export function BottomTabBar() {
   const location = useLocation();
-  const unreadCounts = useAppStore((s) => s.unreadCounts);
+  const conversations = useAppStore((s) => s.conversations);
   const pendingRequests = useAppStore((s) => s.pendingRequests);
 
-  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+  const totalUnread = conversations.reduce((sum, conversation) => sum + (conversation.unread || 0), 0);
   const totalPending = pendingRequests.length;
 
   const tabs = [
     {
       id: 'chats',
-      path: '/',
+      path: '/chats',
       label: 'Chats',
       icon: MessageSquare,
       badge: totalUnread,
@@ -37,7 +37,7 @@ export function BottomTabBar() {
   return (
     <div className="bg-[#FFFFFF] border-t border-[#E5E5E5] flex flex-row items-center justify-around h-[56px] pb-safe shadow-[0_-1px_3px_rgba(0,0,0,0.02)] z-50">
       {tabs.map((tab) => {
-        const isActive = location.pathname === tab.path;
+        const isActive = location.pathname.startsWith(tab.path);
         return (
           <Link
             key={tab.id}
