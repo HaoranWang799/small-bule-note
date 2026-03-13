@@ -149,6 +149,10 @@ Sender                    Server                     Receiver
 
 This avoids rebuilding backend when you only change frontend, and vice versa.
 
+Important:
+- Do not keep a root-level Railway config in monorepo mode.
+- Ensure each service uses its own Root Directory, otherwise Railway may fall back to repository-root build detection.
+
 ### 2. Add managed dependencies
 
 - Add **PostgreSQL** plugin
@@ -178,6 +182,14 @@ VITE_SOCKET_URL=<your-backend-public-url>
 
 Connect both services to the same repository and `main` branch.  
 After this, every push auto-deploys without Railway CLI.
+
+### 5. Add watch paths (recommended)
+
+In Railway service settings:
+- Backend watch paths: `backend/**`
+- Frontend watch paths: `frontend/**`
+
+This prevents frontend-only commits from triggering backend builds (and vice versa), which noticeably shortens average deploy time.
 
 ## Architecture Decisions
 

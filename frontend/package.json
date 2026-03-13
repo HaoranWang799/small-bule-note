@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "start:railway": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
