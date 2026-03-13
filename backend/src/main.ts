@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import * as express from 'express';
+import { Request, Response, NextFunction } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -31,7 +32,7 @@ async function bootstrap() {
   if (fs.existsSync(frontendPath)) {
     app.use(express.static(frontendPath));
     // SPA 路由回退
-    app.use((req, res, next) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       if (!req.path.startsWith('/api')) {
         res.sendFile(path.join(frontendPath, 'index.html'));
       } else {
