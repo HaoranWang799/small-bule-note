@@ -7,6 +7,7 @@ import { ContactsModule } from './contacts/contacts.module';
 import { ChatModule } from './chat/chat.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { RedisModule } from './common/redis/redis.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -25,5 +26,6 @@ import { RedisModule } from './common/redis/redis.module';
     ChatModule,
     WebsocketModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
