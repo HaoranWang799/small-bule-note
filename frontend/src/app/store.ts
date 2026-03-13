@@ -4,6 +4,7 @@ import {
   apiClient,
   ApiError,
   SOCKET_BASE_URL,
+  type ContactRequestPayload,
   type ContactPayload,
   type MessagePayload,
   type RelationshipStatus,
@@ -34,6 +35,12 @@ export interface Contact extends ChatTarget {
   relationshipStatus: "accepted";
 }
 
+export interface ContactRequest {
+  requestId: string;
+  requester: ChatTarget;
+  createdAt: string;
+}
+
 export interface Message {
   id: string;
   senderId: string;
@@ -59,6 +66,13 @@ interface ActionResult {
   message?: string;
 }
 
+export interface IncomingAlert {
+  id: string;
+  fromUserId: string;
+  fromUsername: string;
+  content: string;
+}
+
 interface AppState {
   isInitializing: boolean;
   hasInitialized: boolean;
@@ -66,12 +80,14 @@ interface AppState {
   currentUser: User | null;
   token: string | null;
   contacts: Contact[];
+  pendingRequests: ContactRequest[];
   directory: Record<string, ChatTarget>;
   conversations: Conversation[];
   messages: Record<string, Message[]>;
   socketStatus: "connecting" | "connected" | "disconnected";
   activeChatId: string | null;
   lastError: string | null;
+  incomingAlert: IncomingAlert | null;
   setActiveChat: (contactId: string | null) => void;
   initializeAuth: () => Promise<void>;
   login: (identifier: string, password: string) => Promise<ActionResult>;
@@ -79,16 +95,20 @@ interface AppState {
   logout: () => void;
   updateProfile: (data: { username?: string; email?: string; status?: string }) => Promise<ActionResult>;
   refreshContacts: () => Promise<void>;
+  refreshPendingRequests: () => Promise<void>;
+  acceptContactRequest: (requesterId: string) => Promise<ActionResult>;
   searchUsers: (query: string) => Promise<ChatTarget[]>;
   ensureChatTarget: (userId: string) => Promise<ChatTarget | null>;
   addFriend: (userId: string) => Promise<ActionResult>;
   openChat: (contactId: string) => Promise<void>;
   sendMessage: (contactId: string, content: string) => Promise<ActionResult>;
+  consumeIncomingAlert: () => void;
   clearError: () => void;
 }
 
 let socket: Socket | null = null;
 let initializationPromise: Promise<void> | null = null;
+let heartbeatIntervalId: number | null = null;
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
@@ -171,6 +191,21 @@ function normalizeContact(raw: ContactPayload): Contact {
   };
 }
 
+function normalizeContactRequest(raw: ContactRequestPayload): ContactRequest {
+  return {
+    requestId: raw.request_id,
+    createdAt: raw.created_at,
+    requester: {
+      id: raw.requester_id,
+      username: raw.username,
+      email: raw.email || "",
+      avatarUrl: raw.avatar_url || "",
+      online: raw.status === "online",
+      relationshipStatus: "pending_incoming",
+    },
+  };
+}
+
 function normalizeMessage(raw: MessagePayload): Message {
   return {
     id: raw.id,
@@ -203,6 +238,20 @@ function createOptimisticMessage(currentUserId: string, contactId: string, conte
   };
 }
 
+function triggerIncomingReminder(alert: IncomingAlert) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if ("Notification" in window) {
+    if (Notification.permission === "granted") {
+      new Notification(`新消息: ${alert.fromUsername}`, { body: alert.content });
+    } else if (Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+  }
+}
+
 function persistToken(token: string | null) {
   if (token) {
     localStorage.setItem(TOKEN_STORAGE_KEY, token);
@@ -231,6 +280,11 @@ function mergeDirectory(
 }
 
 function disconnectSocket() {
+  if (heartbeatIntervalId !== null) {
+    window.clearInterval(heartbeatIntervalId);
+    heartbeatIntervalId = null;
+  }
+
   if (socket) {
     socket.removeAllListeners();
     socket.disconnect();
@@ -313,9 +367,16 @@ async function hydrateSession(
 ) {
   const profileResponse = await apiClient.getProfile(token);
   const currentUser = normalizeUser(profileResponse.data);
-  const contactsResponse = await apiClient.getContacts(token);
+  const [contactsResponse, requestsResponse] = await Promise.all([
+    apiClient.getContacts(token),
+    apiClient.getPendingContactRequests(token),
+  ]);
   const contacts = contactsResponse.data.map(normalizeContact);
-  const directory = mergeDirectory({}, contacts);
+  const pendingRequests = requestsResponse.data.map(normalizeContactRequest);
+  const directory = mergeDirectory({}, [
+    ...contacts,
+    ...pendingRequests.map((item) => item.requester),
+  ]);
   const messages = await loadContactHistories(token, contacts);
   const conversations = buildConversations(currentUser.id, contacts, directory, messages);
 
@@ -323,6 +384,7 @@ async function hydrateSession(
     token,
     currentUser: currentUser || fallbackUser || null,
     contacts,
+    pendingRequests,
     directory,
     messages,
     conversations,
@@ -448,9 +510,19 @@ function connectSocket(
 
   socket.on("connect", () => {
     set({ socketStatus: "connected" });
+    if (heartbeatIntervalId !== null) {
+      window.clearInterval(heartbeatIntervalId);
+    }
+    heartbeatIntervalId = window.setInterval(() => {
+      socket?.emit("ping");
+    }, 25000);
   });
 
   socket.on("disconnect", () => {
+    if (heartbeatIntervalId !== null) {
+      window.clearInterval(heartbeatIntervalId);
+      heartbeatIntervalId = null;
+    }
     set({ socketStatus: "disconnected" });
   });
 
@@ -560,6 +632,16 @@ function connectSocket(
 
       if (get().activeChatId === contactId) {
         markMessagesAsRead(contactId, set, get);
+      } else {
+        const fromName = get().directory[contactId]?.username || "新消息";
+        const alert: IncomingAlert = {
+          id: payload.id,
+          fromUserId: contactId,
+          fromUsername: fromName,
+          content: payload.content,
+        };
+        set({ incomingAlert: alert });
+        triggerIncomingReminder(alert);
       }
     }
   );
@@ -628,12 +710,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentUser: null,
   token: null,
   contacts: [],
+  pendingRequests: [],
   directory: {},
   conversations: [],
   messages: {},
   socketStatus: "disconnected",
   activeChatId: null,
   lastError: null,
+  incomingAlert: null,
 
   setActiveChat: (contactId) => {
     set({ activeChatId: contactId });
@@ -656,10 +740,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           currentUser: null,
           token: null,
           contacts: [],
+          pendingRequests: [],
           directory: {},
           conversations: [],
           messages: {},
           socketStatus: "disconnected",
+          incomingAlert: null,
         });
         return;
       }
@@ -678,11 +764,13 @@ export const useAppStore = create<AppState>((set, get) => ({
           currentUser: null,
           token: null,
           contacts: [],
+          pendingRequests: [],
           directory: {},
           conversations: [],
           messages: {},
           socketStatus: "disconnected",
           lastError: getErrorMessage(error, "登录状态已失效，请重新登录"),
+          incomingAlert: null,
         });
       }
     })();
@@ -740,12 +828,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentUser: null,
       token: null,
       contacts: [],
+      pendingRequests: [],
       directory: {},
       conversations: [],
       messages: {},
       socketStatus: "disconnected",
       activeChatId: null,
       lastError: null,
+      incomingAlert: null,
     });
   },
 
@@ -776,9 +866,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     try {
-      const response = await apiClient.getContacts(token);
-      const contacts = response.data.map(normalizeContact);
-      const nextDirectory = mergeDirectory(directory, contacts);
+      const [contactsResponse, pendingResponse] = await Promise.all([
+        apiClient.getContacts(token),
+        apiClient.getPendingContactRequests(token),
+      ]);
+      const contacts = contactsResponse.data.map(normalizeContact);
+      const pendingRequests = pendingResponse.data.map(normalizeContactRequest);
+      const nextDirectory = mergeDirectory(directory, [
+        ...contacts,
+        ...pendingRequests.map((item) => item.requester),
+      ]);
       const nextMessages = { ...messages };
 
       for (const contact of contacts) {
@@ -794,12 +891,52 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         contacts,
+        pendingRequests,
         directory: nextDirectory,
         messages: nextMessages,
         conversations: buildConversations(currentUser.id, contacts, nextDirectory, nextMessages),
       });
     } catch (error) {
       set({ lastError: getErrorMessage(error, "刷新联系人失败") });
+    }
+  },
+
+  refreshPendingRequests: async () => {
+    const { token, directory } = get();
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.getPendingContactRequests(token);
+      const pendingRequests = response.data.map(normalizeContactRequest);
+      const nextDirectory = mergeDirectory(directory, pendingRequests.map((item) => item.requester));
+      set({
+        pendingRequests,
+        directory: nextDirectory,
+      });
+    } catch (error) {
+      set({ lastError: getErrorMessage(error, "刷新好友申请失败") });
+    }
+  },
+
+  acceptContactRequest: async (requesterId) => {
+    const { token } = get();
+    if (!token) {
+      return { success: false, error: "请先登录" };
+    }
+
+    try {
+      const response = await apiClient.acceptContactRequest(token, requesterId);
+      await get().refreshContacts();
+      return {
+        success: true,
+        message: response.message || response.data.message || "已同意好友申请",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error, "同意申请失败");
+      set({ lastError: message });
+      return { success: false, error: message };
     }
   },
 
@@ -957,6 +1094,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     return { success: true };
+  },
+
+  consumeIncomingAlert: () => {
+    set({ incomingAlert: null });
   },
 
   clearError: () => {

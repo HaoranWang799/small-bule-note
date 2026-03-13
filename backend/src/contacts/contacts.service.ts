@@ -46,6 +46,29 @@ export class ContactsService {
     return { success: true, data: contacts };
   }
 
+  async getPendingRequests(userId: string) {
+    const requests = await this.friendshipRepo.find({
+      where: { friend_id: userId, status: 'pending' },
+      relations: ['user'],
+      order: { created_at: 'DESC' },
+    });
+
+    const onlineUsers = await this.redisService.getAllOnlineUsers();
+
+    return {
+      success: true,
+      data: requests.map((request) => ({
+        request_id: request.id,
+        requester_id: request.user.id,
+        username: request.user.username,
+        email: request.user.email,
+        avatar_url: request.user.avatar_url,
+        status: onlineUsers[request.user.id] ? 'online' : request.user.status,
+        created_at: request.created_at,
+      })),
+    };
+  }
+
   async addContact(userId: string, friendId?: string, friendUsername?: string) {
     const normalizedUsername = friendUsername?.trim();
     let resolvedFriendId = friendId;
@@ -117,5 +140,23 @@ export class ContactsService {
 
     await this.friendshipRepo.remove(friendship);
     return { success: true, message: 'Contact removed' };
+  }
+
+  async acceptRequest(userId: string, requesterId: string) {
+    const request = await this.friendshipRepo.findOne({
+      where: {
+        user_id: requesterId,
+        friend_id: userId,
+        status: 'pending',
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Friend request not found');
+    }
+
+    request.status = 'accepted';
+    await this.friendshipRepo.save(request);
+    return { success: true, message: 'Friend request accepted' };
   }
 }

@@ -27,6 +27,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private heartbeatTimers = new Map<string, NodeJS.Timeout>();
+  private lastHeartbeatAt = new Map<string, number>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -75,6 +76,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Stop heartbeat
       this.stopHeartbeat(client.id);
+      this.lastHeartbeatAt.delete(client.id);
 
       // Notify contacts
       client.broadcast.emit('user:offline', { userId: client.userId });
@@ -185,22 +187,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // --- Heartbeat ---
 
   private startHeartbeat(client: AuthenticatedSocket) {
+    this.lastHeartbeatAt.set(client.id, Date.now());
+
     const timer = setInterval(async () => {
-      // If the client hasn't sent a ping in 30s, disconnect
+      const lastPing = this.lastHeartbeatAt.get(client.id) || 0;
+      const stale = Date.now() - lastPing > 65000;
+
+      // Disconnect only if client heartbeat is stale
+      if (!stale) {
+        return;
+      }
+
       if (client.userId) {
         await this.redisService.setUserOffline(client.userId);
         await this.redisService.removeSocket(client.id);
         client.broadcast.emit('user:offline', { userId: client.userId });
         client.disconnect();
       }
-    }, 60000); // 60s timeout (client should ping every 30s)
+    }, 15000);
 
     this.heartbeatTimers.set(client.id, timer);
   }
 
   private resetHeartbeat(client: AuthenticatedSocket) {
-    this.stopHeartbeat(client.id);
-    this.startHeartbeat(client);
+    this.lastHeartbeatAt.set(client.id, Date.now());
   }
 
   private stopHeartbeat(socketId: string) {
@@ -209,6 +219,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       clearInterval(timer);
       this.heartbeatTimers.delete(socketId);
     }
+    this.lastHeartbeatAt.delete(socketId);
   }
 
   // --- Helpers ---

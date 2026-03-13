@@ -8,7 +8,11 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ContactsService } from './contacts.service';
-import { AddContactDto, RemoveContactDto } from './dto/contact.dto';
+import {
+  AcceptContactDto,
+  AddContactDto,
+  RemoveContactDto,
+} from './dto/contact.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
@@ -20,6 +24,11 @@ export class ContactsController {
   @Get()
   async getContacts(@CurrentUser() user: User) {
     return this.contactsService.getContacts(user.id);
+  }
+
+  @Get('requests')
+  async getPendingRequests(@CurrentUser() user: User) {
+    return this.contactsService.getPendingRequests(user.id);
   }
 
   @Post('add')
@@ -37,5 +46,13 @@ export class ContactsController {
     @Body() dto: RemoveContactDto,
   ) {
     return this.contactsService.removeContact(user.id, dto.friend_id);
+  }
+
+  @Post('accept')
+  async acceptContactRequest(
+    @CurrentUser() user: User,
+    @Body() dto: AcceptContactDto,
+  ) {
+    return this.contactsService.acceptRequest(user.id, dto.requester_id);
   }
 }

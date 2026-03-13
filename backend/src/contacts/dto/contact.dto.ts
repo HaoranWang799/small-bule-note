@@ -16,3 +16,8 @@ export class RemoveContactDto {
   @IsUUID()
   friend_id: string;
 }
+
+export class AcceptContactDto {
+  @IsUUID()
+  requester_id: string;
+}

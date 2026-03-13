@@ -1,7 +1,22 @@
+import { useEffect } from "react";
 import { RouterProvider } from "react-router";
 import { router } from "./routes";
+import { useAppStore } from "./store";
+import { Toaster, toast } from "sonner";
 
 export default function App() {
+  const incomingAlert = useAppStore((s) => s.incomingAlert);
+  const consumeIncomingAlert = useAppStore((s) => s.consumeIncomingAlert);
+
+  useEffect(() => {
+    if (incomingAlert) {
+      toast(`来自 ${incomingAlert.fromUsername} 的新消息`, {
+        description: incomingAlert.content,
+      });
+      consumeIncomingAlert();
+    }
+  }, [consumeIncomingAlert, incomingAlert]);
+
   return (
     <div className="size-full flex items-center justify-center bg-[#e8e8e8]">
       {/* Mobile phone frame */}
@@ -34,6 +49,7 @@ export default function App() {
           <RouterProvider router={router} />
         </div>
       </div>
+      <Toaster position="top-center" richColors />
     </div>
   );
 }

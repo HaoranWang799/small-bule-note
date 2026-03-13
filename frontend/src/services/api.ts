@@ -53,6 +53,16 @@ interface ContactPayload extends UserLookupPayload {
   friendship_id: string;
 }
 
+interface ContactRequestPayload {
+  request_id: string;
+  requester_id: string;
+  username: string;
+  email?: string;
+  avatar_url?: string | null;
+  status: string;
+  created_at: string;
+}
+
 interface MessagePayload {
   id: string;
   sender_id: string;
@@ -183,6 +193,17 @@ export const apiClient = {
     }, token);
   },
 
+  getPendingContactRequests(token: string) {
+    return request<ContactRequestPayload[]>("/contacts/requests", {}, token);
+  },
+
+  acceptContactRequest(token: string, requesterId: string) {
+    return request<{ message: string }>("/contacts/accept", {
+      method: "POST",
+      body: JSON.stringify({ requester_id: requesterId }),
+    }, token);
+  },
+
   searchUsers(token: string, query: string) {
     return request<UserLookupPayload[]>(
       `/users/search?q=${encodeURIComponent(query)}`,
@@ -212,6 +233,7 @@ export const apiClient = {
 export type {
   AuthPayload,
   ContactPayload,
+  ContactRequestPayload,
   UserLookupPayload,
   MessagePayload,
   MessageHistoryPayload,
