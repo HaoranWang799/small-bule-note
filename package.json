@@ -7,7 +7,10 @@
     "node": "18.x"
   },
   "scripts": {
-    "build": "cd backend && npm ci && npm run build",
-    "start": "cd backend && NODE_ENV=production npm run start:prod"
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm ci && npm run build",
+    "build:frontend": "cd frontend && npm ci && npm run build",
+    "start": "npm run build && npm run start:prod",
+    "start:prod": "cd backend && NODE_ENV=production npm run start:prod"
   }
 }
