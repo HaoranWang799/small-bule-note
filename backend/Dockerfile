@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* yarn.lock* ./
-RUN npm ci --ignore-scripts
+RUN npm ci
 
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY src/ ./src/
@@ -20,7 +20,7 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
 COPY --from=builder /app/package.json /app/package-lock.json* ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
