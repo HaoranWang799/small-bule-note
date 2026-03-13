@@ -11,22 +11,23 @@ export function ChatScreen() {
   const contacts = useAppStore((s) => s.contacts);
   const currentUser = useAppStore((s) => s.currentUser);
   const sendMessage = useAppStore((s) => s.sendMessage);
-  const markAsRead = useAppStore((s) => s.markAsRead);
-  const getMessages = useAppStore((s) => s.getMessages);
+  const openChat = useAppStore((s) => s.openChat);
 
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const contact = contacts.find((c) => c.id === id);
-  const chatMessages = id ? getMessages(id) : [];
+  const chatMessages = id ? (messages[id] || []) : [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [chatMessages]);
 
   useEffect(() => {
-    if (id) void markAsRead(id);
-  }, [id, chatMessages.length, markAsRead]);
+    if (id) {
+      void openChat(id);
+    }
+  }, [id, openChat]);
 
   const handleSend = () => {
     if (!inputText.trim() || !id) return;
@@ -65,7 +66,7 @@ export function ChatScreen() {
           </div>
         ) : (
           chatMessages.map((msg, index) => {
-            const isMine = msg.sender.id === currentUser?.id;
+            const isMine = msg.senderId === currentUser?.id;
             return (
               <MessageBubble
                 key={msg.id || index}

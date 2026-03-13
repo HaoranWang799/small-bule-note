@@ -6,28 +6,13 @@ import { UnreadBadge } from './UnreadBadge';
 
 export function ChatListScreen() {
   const navigate = useNavigate();
-  const contacts = useAppStore((s) => s.contacts);
-  const getMessages = useAppStore((s) => s.getMessages);
-  const unreadCounts = useAppStore((s) => s.unreadCounts);
-  const initSocket = useAppStore((s) => s.initSocket);
+  const conversations = useAppStore((s) => s.conversations);
+  const openChat = useAppStore((s) => s.openChat);
+  const refreshContacts = useAppStore((s) => s.refreshContacts);
 
   useEffect(() => {
-    initSocket();
-  }, [initSocket]);
-
-  const chats = contacts.map(contact => {
-    const msgs = getMessages(contact.id);
-    const lastMsg = msgs[msgs.length - 1];
-    return {
-      contact,
-      lastMessage: lastMsg,
-      unread: unreadCounts[contact.id] || 0
-    };
-  }).sort((a, b) => {
-    const timeA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
-    const timeB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
-    return timeB - timeA;
-  });
+    void refreshContacts();
+  }, [refreshContacts]);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F8F8]">
@@ -36,31 +21,34 @@ export function ChatListScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {chats.length > 0 ? (
+        {conversations.length > 0 ? (
           <div className="py-2">
-            {chats.map(({ contact, lastMessage, unread }) => (
+            {conversations.map((conversation) => (
               <button
-                key={contact.id}
-                onClick={() => navigate(`/chat/${contact.id}`)}
+                key={conversation.id}
+                onClick={() => {
+                  void openChat(conversation.id);
+                  navigate(`/chat/${conversation.id}`);
+                }}
                 className="w-full flex items-center px-4 py-3.5 bg-[#FFFFFF] hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors text-left border-b border-[#F0F0F0] last:border-b-0"
               >
                 <div className="relative">
-                  <Avatar name={contact.username} />
-                  {unread > 0 && (
+                  <Avatar name={conversation.target.username} />
+                  {conversation.unread > 0 && (
                     <div className="absolute -top-1 -right-1 z-10">
-                      <UnreadBadge count={unread} />
+                      <UnreadBadge count={conversation.unread} />
                     </div>
                   )}
                 </div>
                 <div className="ml-4 flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-[16px] font-medium text-[#1F1F1F] truncate">{contact.username}</span>
+                    <span className="text-[16px] font-medium text-[#1F1F1F] truncate">{conversation.target.username}</span>
                     <span className="text-[12px] text-[#8A8A8A] flex-shrink-0 ml-2">
-                      {lastMessage ? new Date(lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      {conversation.timestamp || ''}
                     </span>
                   </div>
                   <p className="text-[14px] text-[#8A8A8A] truncate leading-tight">
-                    {lastMessage ? lastMessage.content : 'No messages yet'}
+                    {conversation.lastMessage || 'No messages yet'}
                   </p>
                 </div>
               </button>
