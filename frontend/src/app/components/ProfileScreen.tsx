@@ -32,10 +32,15 @@ export function ProfileScreen() {
           <div className="ml-4 flex-1">
             <h2 className="text-[20px] text-[#111]">{currentUser.username}</h2>
             <p className="text-[14px] text-[#999] mt-0.5">{currentUser.email}</p>
+            <p className="text-[12px] text-[#999] mt-1">资料状态：{currentUser.status}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <span className={`w-2 h-2 rounded-full ${socketStatus === "connected" ? "bg-[#2ECC71]" : "bg-[#BDC3C7]"}`} />
               <span className="text-[12px] text-[#999]">
-                {socketStatus === "connected" ? "WebSocket 已连接" : "未连接"}
+                {socketStatus === "connected"
+                  ? "WebSocket 已连接"
+                  : socketStatus === "connecting"
+                    ? "WebSocket 连接中"
+                    : "未连接"}
               </span>
             </div>
           </div>

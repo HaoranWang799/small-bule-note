@@ -24,7 +24,11 @@ export class ContactsController {
 
   @Post('add')
   async addContact(@CurrentUser() user: User, @Body() dto: AddContactDto) {
-    return this.contactsService.addContact(user.id, dto.friend_id);
+    return this.contactsService.addContact(
+      user.id,
+      dto.friend_id,
+      dto.friend_username,
+    );
   }
 
   @Delete('remove')

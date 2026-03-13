@@ -1,22 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { useAppStore } from "../store";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 
 export function RegisterScreen() {
   const navigate = useNavigate();
+  const register = useAppStore((s) => s.register);
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleRegister = () => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/chats", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleRegister = async () => {
     if (!username || !email || !password) {
       setError("请填写所有字段");
       return;
     }
-    setSuccess(true);
-    setTimeout(() => navigate("/login", { replace: true }), 1200);
+
+    setSubmitting(true);
+    setError("");
+    const result = await register(username, email, password);
+    setSubmitting(false);
+
+    if (result.success) {
+      navigate("/chats", { replace: true });
+      return;
+    }
+
+    setError(result.error || "注册失败，请稍后再试");
   };
 
   return (
@@ -58,14 +77,13 @@ export function RegisterScreen() {
           />
 
           {error && <p className="text-[13px] text-[#ee0a24]">{error}</p>}
-          {success && <p className="text-[13px] text-[#07C160]">注册成功！正在跳转到登录页面...</p>}
 
           <button
             onClick={handleRegister}
-            disabled={success}
+            disabled={submitting}
             className="w-full h-12 rounded-lg bg-[#07C160] text-white hover:bg-[#06ae56] active:bg-[#059e4e] transition-colors disabled:opacity-60"
           >
-            注册
+            {submitting ? "注册中..." : "注册"}
           </button>
         </div>
 

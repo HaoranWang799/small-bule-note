@@ -19,8 +19,10 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    const username = dto.username.trim();
+    const email = dto.email.trim().toLowerCase();
     const existing = await this.userRepo.findOne({
-      where: [{ username: dto.username }, { email: dto.email }],
+      where: [{ username }, { email }],
     });
     if (existing) {
       throw new ConflictException('Username or email already exists');
@@ -30,8 +32,8 @@ export class AuthService {
     const password_hash = await bcrypt.hash(dto.password, salt);
 
     const user = this.userRepo.create({
-      username: dto.username,
-      email: dto.email,
+      username,
+      email,
       password_hash,
     });
     await this.userRepo.save(user);
@@ -47,8 +49,9 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const identifier = dto.username.trim();
     const user = await this.userRepo.findOne({
-      where: { username: dto.username },
+      where: [{ username: identifier }, { email: identifier.toLowerCase() }],
       select: ['id', 'username', 'email', 'password_hash', 'avatar_url', 'status'],
     });
     if (!user) {

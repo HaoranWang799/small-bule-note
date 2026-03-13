@@ -12,7 +12,7 @@ export function ChatListScreen() {
 
   const filtered = conversations.filter(
     (c) =>
-      c.contact.username.toLowerCase().includes(search.toLowerCase()) ||
+      c.target.username.toLowerCase().includes(search.toLowerCase()) ||
       c.lastMessage.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -37,13 +37,13 @@ export function ChatListScreen() {
         {filtered.map((conv) => (
           <button
             key={conv.id}
-            onClick={() => navigate(`/chat/${conv.contact.id}`)}
+            onClick={() => navigate(`/chat/${conv.target.id}`)}
             className="flex items-center w-full px-4 py-3 bg-white border-b border-[#F5F5F5] hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors text-left"
           >
-            <Avatar name={conv.contact.username} online={conv.contact.online} />
+            <Avatar name={conv.target.username} online={conv.target.online} />
             <div className="flex-1 ml-3 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-[16px] text-[#111] truncate">{conv.contact.username}</span>
+                <span className="text-[16px] text-[#111] truncate">{conv.target.username}</span>
                 <span className="text-[12px] text-[#999] shrink-0 ml-2">{conv.timestamp}</span>
               </div>
               <div className="flex items-center justify-between mt-0.5">

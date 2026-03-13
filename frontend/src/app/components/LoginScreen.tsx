@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAppStore } from "../store";
 import { MessageCircle } from "lucide-react";
@@ -6,20 +6,31 @@ import { MessageCircle } from "lucide-react";
 export function LoginScreen() {
   const navigate = useNavigate();
   const login = useAppStore((s) => s.login);
-  const [email, setEmail] = useState("");
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      setError("请输入邮箱和密码");
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/chats", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleLogin = async () => {
+    if (!identifier || !password) {
+      setError("请输入用户名或邮箱和密码");
       return;
     }
-    const success = login(email, password);
-    if (success) {
+    setSubmitting(true);
+    setError("");
+    const result = await login(identifier, password);
+    setSubmitting(false);
+    if (result.success) {
       navigate("/chats", { replace: true });
     } else {
-      setError("登录失败，请检查邮箱和密码");
+      setError(result.error || "登录失败，请检查账号和密码");
     }
   };
 
@@ -35,10 +46,9 @@ export function LoginScreen() {
       <div className="flex flex-col gap-4">
         <div>
           <input
-            type="email"
-            placeholder="邮箱"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="用户名或邮箱"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             className="w-full h-12 px-4 rounded-lg bg-[#F5F5F5] border border-[#E5E5E5] text-[#111] placeholder-[#999] outline-none focus:border-[#07C160]"
           />
         </div>
@@ -57,13 +67,15 @@ export function LoginScreen() {
 
         <button
           onClick={handleLogin}
-          className="w-full h-12 rounded-lg bg-[#07C160] text-white hover:bg-[#06ae56] active:bg-[#059e4e] transition-colors"
+          disabled={submitting}
+          className="w-full h-12 rounded-lg bg-[#07C160] text-white hover:bg-[#06ae56] active:bg-[#059e4e] transition-colors disabled:opacity-60"
         >
-          登录
+          {submitting ? "登录中..." : "登录"}
         </button>
 
         <button
           onClick={() => navigate("/register")}
+          disabled={submitting}
           className="w-full h-12 rounded-lg border border-[#07C160] text-[#07C160] bg-transparent hover:bg-[#f0faf4] transition-colors"
         >
           注册新账号
