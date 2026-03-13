@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "WeChat-like IM App Backend - NestJS",
   "private": true,
+  "packageManager": "npm@10.9.4",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
