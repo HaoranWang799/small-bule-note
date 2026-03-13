@@ -1,8 +1,10 @@
 import { useAppStore } from '../store';
 import { Avatar } from './Avatar';
 import { LogOut, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router';
 
 export function ProfileScreen() {
+  const navigate = useNavigate();
   const currentUser = useAppStore((s) => s.currentUser);
   const logout = useAppStore((s) => s.logout);
 
@@ -25,7 +27,10 @@ export function ProfileScreen() {
 
         <div className="px-4 space-y-2">
           <div className="bg-[#FFFFFF] rounded-2xl shadow-sm overflow-hidden">
-             <button className="w-full flex items-center justify-between px-4 py-4 hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors border-b border-[#F0F0F0] last:border-b-0">
+             <button
+               onClick={() => navigate('/edit-profile')}
+               className="w-full flex items-center justify-between px-4 py-4 hover:bg-[#F8F8F8] active:bg-[#F0F0F0] transition-colors border-b border-[#F0F0F0] last:border-b-0"
+             >
                 <span className="text-[16px] text-[#1F1F1F]">Settings</span>
                 <ChevronRight className="w-5 h-5 text-[#8A8A8A]" />
              </button>

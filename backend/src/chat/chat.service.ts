@@ -19,8 +19,8 @@ export class ChatService {
     messageType: MessageType = MessageType.TEXT,
     clientMessageId?: string,
   ): Promise<Message> {
-    // Deduplication: check if client_message_id already exists
-    if (clientMessageId) {
+    // Guard UUID lookup to avoid PostgreSQL UUID cast errors from arbitrary client IDs.
+    if (clientMessageId && this.isUuid(clientMessageId)) {
       const existing = await this.messageRepo.findOne({
         where: { id: clientMessageId },
       });
@@ -38,6 +38,12 @@ export class ChatService {
     });
 
     return this.messageRepo.save(message);
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    );
   }
 
   async markAsDelivered(messageId: string): Promise<void> {

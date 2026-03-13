@@ -1,22 +1,21 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router";
-import { Outlet } from "react-router";
+import { Navigate, Outlet } from "react-router";
 import { BottomTabBar } from "./BottomTabBar";
 import { useAppStore } from "../store";
 
 export function TabLayout() {
-  const navigate = useNavigate();
+  const initializeAuth = useAppStore((s) => s.initializeAuth);
+  const hasInitialized = useAppStore((s) => s.hasInitialized);
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
-  const isInitializing = useAppStore((s) => s.isInitializing);
 
   useEffect(() => {
-    if (!isInitializing && !isAuthenticated) {
-      navigate("/login", { replace: true });
+    if (!hasInitialized) {
+      void initializeAuth();
     }
-  }, [isAuthenticated, isInitializing, navigate]);
+  }, [hasInitialized, initializeAuth]);
 
   if (!isAuthenticated) {
-    return <div className="h-full bg-white" />;
+    return <Navigate to="/login" replace />;
   }
 
   return (

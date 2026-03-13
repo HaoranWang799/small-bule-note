@@ -5,35 +5,53 @@ import { MessageBubble } from './MessageBubble';
 import { Send, ChevronLeft } from 'lucide-react';
 
 export function ChatScreen() {
-  const { id } = useParams<{ id: string }>();
+  const { contactId } = useParams<{ contactId: string }>();
   const navigate = useNavigate();
   const messages = useAppStore((s) => s.messages);
   const contacts = useAppStore((s) => s.contacts);
+  const directory = useAppStore((s) => s.directory);
   const currentUser = useAppStore((s) => s.currentUser);
   const sendMessage = useAppStore((s) => s.sendMessage);
   const openChat = useAppStore((s) => s.openChat);
 
   const [inputText, setInputText] = useState('');
+  const [isResolvingTarget, setIsResolvingTarget] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const contact = contacts.find((c) => c.id === id);
-  const chatMessages = id ? (messages[id] || []) : [];
+  const contact = contactId
+    ? contacts.find((c) => c.id === contactId) || directory[contactId]
+    : undefined;
+  const chatMessages = contactId ? (messages[contactId] || []) : [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [chatMessages]);
 
   useEffect(() => {
-    if (id) {
-      void openChat(id);
+    if (contactId) {
+      setIsResolvingTarget(true);
+      void openChat(contactId).finally(() => {
+        setIsResolvingTarget(false);
+      });
     }
-  }, [id, openChat]);
+  }, [contactId, openChat]);
 
   const handleSend = () => {
-    if (!inputText.trim() || !id) return;
-    sendMessage(id, inputText.trim());
+    if (!inputText.trim() || !contactId) return;
+    sendMessage(contactId, inputText.trim());
     setInputText('');
   };
+
+  if (!contact && isResolvingTarget) {
+    return (
+      <div className="flex flex-col h-full bg-[#F8F8F8]">
+        <div className="bg-[#FFFFFF] px-4 py-3 shadow-sm flex items-center">
+          <button onClick={() => navigate(-1)} className="mr-3 p-1 -ml-1 active:scale-95 transition-transform"><ChevronLeft className="w-6 h-6 text-[#1F1F1F]" /></button>
+          <span className="text-[17px] font-semibold text-[#1F1F1F]">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!contact) {
     return (

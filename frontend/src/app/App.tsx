@@ -5,8 +5,13 @@ import { useAppStore } from "./store";
 import { Toaster, toast } from "sonner";
 
 export default function App() {
+  const initializeAuth = useAppStore((s) => s.initializeAuth);
   const incomingAlert = useAppStore((s) => s.incomingAlert);
   const consumeIncomingAlert = useAppStore((s) => s.consumeIncomingAlert);
+
+  useEffect(() => {
+    void initializeAuth();
+  }, [initializeAuth]);
 
   useEffect(() => {
     if (incomingAlert) {
