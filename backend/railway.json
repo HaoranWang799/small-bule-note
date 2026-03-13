@@ -1,0 +1,4 @@
+{
+  "buildCommand": "npm ci --no-audit --no-fund && npm run build && npm prune --omit=dev",
+  "startCommand": "npm run start:prod"
+}

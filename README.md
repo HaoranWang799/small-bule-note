@@ -136,17 +136,27 @@ Sender                    Server                     Receiver
   |                         |-- mark delivered          |
 ```
 
-## Deploy to Railway
+## Deploy to Railway (Faster)
 
-### 1. Create Railway project
+### 1. Use 2 services (recommended)
+
+- `backend` service:
+  - Root Directory: `backend`
+  - Config file: `backend/railway.json`
+- `frontend` service:
+  - Root Directory: `frontend`
+  - Config file: `frontend/railway.json`
+
+This avoids rebuilding backend when you only change frontend, and vice versa.
+
+### 2. Add managed dependencies
 
 - Add **PostgreSQL** plugin
 - Add **Redis** plugin
-- Create a **Service** from your GitHub repo
 
-### 2. Set environment variables
+### 3. Set environment variables
 
-In Railway dashboard, set:
+In `backend` service:
 
 ```
 PORT=3000
@@ -157,16 +167,17 @@ JWT_EXPIRES_IN=7d
 NODE_ENV=production
 ```
 
-### 3. Configure GitHub Actions
+In `frontend` service:
 
-Add these secrets to your GitHub repo:
+```
+VITE_API_BASE_URL=<your-backend-public-url>/api
+VITE_SOCKET_URL=<your-backend-public-url>
+```
 
-- `RAILWAY_TOKEN` — your Railway API token
-- `RAILWAY_SERVICE_NAME` — your service name on Railway
+### 4. Enable GitHub auto deploy
 
-### 4. Deploy
-
-Push to `main` branch — GitHub Actions will build, test, and deploy automatically.
+Connect both services to the same repository and `main` branch.  
+After this, every push auto-deploys without Railway CLI.
 
 ## Architecture Decisions
 
